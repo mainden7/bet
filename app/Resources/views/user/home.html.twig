@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block stylesheets %}
+    <style>
+        .border-off{
+            border: 1px solid transparent;
+        }
+        td.profit-percent{
+            width: 150px;;
+            text-align: center;
+            vertical-align: middle !important;
+            font-size: 24px;
+            background: #57e483;
+            color: #2e5e57;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+<section id="bets">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Sure Bets</h2>
+                {% for bet in sureBets %}
+                    {% if bet.betType == 'both_score' %}
+                        <div class="bet" data-id="{{ bet.betId }}">
+                            <div class="bet-header">
+                                <p>
+                                    <span class="sport-name">{{ bet.sportName }}</span>
+                                    <span class="tournament-name">{{ bet.tournamentName }}</span>
+                                    <span class="event-name">{{ bet.eventName}}</span>
+                                    <span class="date">{{ bet.eventTime | date('d, M Y H:i:s') }}</span>
+                                </p>
+                                <p>
+                                    {{ bet.betType }}
+                                </p>
+                            </div>
+                            <div class="bet-content">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                    <tr>
+                                        <td rowspan="2" class="profit-percent">{{ bet.profitPercent | number_format(2, '.', ' ') }} %</td>
+                                        <td>{{ bet.bookmakerFirst }}</td>
+                                        <td>{{ bet.firstOddCf }}</td>
+                                        <td>{{ bet.firstOddType }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ bet.bookmakerSecond }}</td>
+                                        <td>{{ bet.secondOddCf }}</td>
+                                        <td>{{ bet.secondOddType }}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if bet.betType == 'home_draw_away' %}
+                        <div class="bet" data-id="{{ bet.betId }}">
+                            <div class="bet-header">
+                                <p>
+                                    <span class="sport-name">{{ bet.sportName }}</span>
+                                    <span class="tournament-name">{{ bet.tournamentName }}</span>
+                                    <span class="event-name">{{ bet.eventName}}</span>
+                                    <span class="date">{{ bet.eventTime | date('d, M Y H:i:s') }}</span>
+                                </p>
+                                <p>
+                                    {{ bet.betType }}
+                                </p>
+                            </div>
+                            <div class="bet-content">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                    <tr>
+                                        <td rowspan="3" class="profit-percent">{{ bet.profitPercent | number_format(2, '.', ' ') }} %</td>
+                                        <td>{{ bet.bookmakerFirst }}</td>
+                                        <td>{{ bet.firstOddCf }}</td>
+                                        <td>{{ bet.firstOddType }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ bet.bookmakerSecond }}</td>
+                                        <td>{{ bet.secondOddCf }}</td>
+                                        <td>{{ bet.secondOddType }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ bet.bookmakerThird }}</td>
+                                        <td>{{ bet.thirdOddCf }}</td>
+                                        <td>{{ bet.thirdOddType }}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -9,7 +9,11 @@ services:
 #        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
         calls:
             - [setContainer, ["@service_container"]]
-    app.helper_controller:
-        class: AppBundle\Controller\HelperController
+    app.execute_controller:
+        class: AppBundle\Controller\ExecuteController
         calls:
             - [setContainer, ["@service_container"]]
+    app.soccer_controller:
+            class: AppBundle\Controller\SoccerController
+            calls:
+                - [setContainer, ["@service_container"]]

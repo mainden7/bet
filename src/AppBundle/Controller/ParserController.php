@@ -132,10 +132,9 @@ class ParserController extends Controller
 
     public function findAllEvents($number = null)
     {
-        $number = 'soccer';
         if(is_numeric($number)){
-            $limit = 20;
-            $offset = $number * 20;
+            $limit = 100;
+            $offset = $number * 100;
             $tournaments = $this->getDoctrine()->getManager()->getRepository('AppBundle:Tournament')->findBy(array(), array('id' => 'ASC'), $limit, $offset);
         }elseif (is_string($number)){
             $tournaments = $this->getDoctrine()->getManager()->getRepository('AppBundle:Tournament')->findBySportName($number);
@@ -227,78 +226,105 @@ class ParserController extends Controller
     public function paramsExecute($number = null)
     {
         $limit = 100;
-        $offset = $number * 20;
+        $offset = $number * 100;
 
         //load events
         $all_events = $this->getDoctrine()->getManager()->getRepository('AppBundle:Event')->findBy(array(), array('id' => 'ASC'), $limit, $offset);
 
         foreach ($all_events as $single_event) {
 
-            $sport_id = $single_event->getSportId();
-            $sport_name = $single_event->getSportName();
-            $event_url = $single_event->getUrl();
-            $event_id = $single_event->getEventId();
-            $version_id = 1;
-            $event_date = $single_event->getEventTime();
+            if ($single_event->getEventTime() >= new \DateTime()) {
 
-            $data = self::curl($event_url);
+                $sport_id = $single_event->getSportId();
+                $sport_name = $single_event->getSportName();
+                $event_url = $single_event->getUrl();
+                $event_id = $single_event->getEventId();
+                $version_id = 1;
+                $event_date = $single_event->getEventTime();
+
+                $data = self::curl($event_url);
 
 //            print '<pre>' . print_r(($event_date[0] <= $date_future->format('Y-m-d H:i:s') ? 'true' : 'false'), true) . '</pre>'; die();
-            //step 1
-            $st = strpos($data, 'PageEvent');
-            $html = substr($data, $st);
-            //step 2
-            $st = strpos($html, '"');
-            $html = substr($html, $st);
-            //step 3
-            $st = strrchr($html, '}');
-            $html = stristr($html, '}', true);
+                //step 1
+                $st = strpos($data, 'PageEvent');
+                $html = substr($data, $st);
+                //step 2
+                $st = strpos($html, '"');
+                $html = substr($html, $st);
+                //step 3
+                $st = strrchr($html, '}');
+                $html = stristr($html, '}', true);
 
-            $params = array();
-            $arr = explode(',', $html);
+                $params = array();
+                $arr = explode(',', $html);
 
-            foreach ($arr as $key => $value) {
-                $at = str_replace('"', '', $value);
-                preg_match_all("#([^,\s]+):([^,\s]+)#s",$at,$out);
-                unset($out[0]);
-                $out = array_combine($out[1],$out[2]);
-                $params += $out;
-            }
+                foreach ($arr as $key => $value) {
+                    $at = str_replace('"', '', $value);
+                    preg_match_all("#([^,\s]+):([^,\s]+)#s", $at, $out);
+                    unset($out[0]);
+                    $out = array_combine($out[1], $out[2]);
+                    $params += $out;
+                }
 
-            $home_away = explode('-', $single_event->getName());
+                $home_away = explode('-', $single_event->getName());
 
-            if(!empty($home_away[0])){
-                $home = $home_away[0];
+                if (!empty($home_away[0])) {
+                    $home = $home_away[0];
+                } else {
+                    $home = NULL;
+                }
+                if (!empty($home_away[1])) {
+                    $away = $home_away[1];
+                } else {
+                    $away = NULL;
+                }
+                $xhash = urldecode($params['xhash']);
+                $xhashf = urldecode($params['xhashf']);
+                if (($params['isStarted']) == 'false') {
+                    $em = $this->getDoctrine()->getManager();
+                    $params_exist = $em->getRepository('AppBundle:Parameter')->findOneByEventId($event_id);
+                    if($params_exist){
+                        $params_exist->setXhash($xhash)
+                            ->setXhashf($xhashf)
+                        ;
+                    }else{
+                        $parameter = new Parameter();
+                        $parameter->setSportId($sport_id)
+                            ->setSportName($sport_name)
+                            ->setEventUrl($event_url)
+                            ->setEventId($event_id)
+                            ->setVersionId($version_id)
+                            ->setHome($home)
+                            ->setAway($away)
+                            ->setXhash($xhash)
+                            ->setXhashf($xhashf)
+                            ->setEventTime($event_date);
+
+                        $em->persist($parameter);
+                    }
+
+
+
+                    $em->flush();
+
+                }
             }else{
-                $home = NULL;
-            }
-            if(!empty($home_away[1])){
-                $away = $home_away[1];
-            }else{
-                $away = NULL;
-            }
-            $xhash = urldecode($params['xhash']);
-            $xhashf = urldecode($params['xhashf']);
-            if(($params['isStarted']) == 'false'){
-
-                $parameter = new Parameter();
-                $parameter->setSportId($sport_id)
-                    ->setSportName($sport_name)
-                    ->setEventUrl($event_url)
-                    ->setEventId($event_id)
-                    ->setVersionId($version_id)
-                    ->setHome($home)
-                    ->setAway($away)
-                    ->setXhash($xhash)
-                    ->setXhashf($xhashf)
-                    ->setEventTime($event_date);
-
                 $em = $this->getDoctrine()->getManager();
-                $em->persist($parameter);
-                $em->flush();
+                $event = $em->getRepository('AppBundle:Event')->findOneByEventId($single_event->getEventId());
+                if($event){
+                    $em->remove($single_event);
+                    $em->flush();
+                }
+
+                $param = $em->getRepository('AppBundle:Parameter')->findOneByEventId($single_event->getEventId());
+                if($param) {
+                    $em->remove($param);
+                    $em->flush();
+                }
 
             }
         }
+
 
         return new Response('success');
     }
